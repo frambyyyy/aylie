@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Pour Aylie — Lettre</title>
+<style>
+  :root{
+    --pink-600:#ff2d96;
+    --accent:#ff4fa3;
+    --muted:#6b5160;
+  }
+  html,body{height:100%;margin:0;font-family:Inter, 'Poppins', system-ui, -apple-system, 'Segoe UI', Roboto, Arial;}
+  body{
+    background:#ffd9ec;
+    overflow:hidden;
+  }
+
+  /* === login background image (behind popup) === */
+  #loginBg{
+    position:fixed;inset:0;z-index:1000;
+    background-image:url('kisses.png');
+    background-size:cover;background-position:center center;background-repeat:no-repeat;
+    pointer-events:none;
+  }
+
+  /* === LOGIN POPUP === */
+  #loginPopup{
+    position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+    background:rgba(0,0,0,0.45);backdrop-filter:blur(4px);z-index:2000;
+  }
+  .popup{
+    width:360px;background:linear-gradient(180deg,rgba(255,255,255,0.98),#fff);
+    border-radius:18px;padding:28px;box-shadow:0 20px 50px rgba(60,10,40,0.25);text-align:center;position:relative;
+  }
+  .popup h2{margin:0 0 6px 0;color:var(--pink-600);font-size:22px;}
+  .popup p{margin:0 0 14px 0;color:var(--muted);font-size:13px}
+  .popup input{width:100%;padding:12px;border-radius:10px;border:1px solid #f4cbe0;margin-bottom:12px;font-size:15px}
+  .popup button{width:100%;padding:12px;border-radius:10px;border:0;background:var(--accent);color:#fff;font-weight:700;cursor:pointer}
+  .kiss-deco{position:absolute;width:46px;opacity:0.95}
+  .kiss-1{left:-18px;top:-12px;transform:rotate(-8deg)}
+  .kiss-2{right:-20px;top:8px;transform:rotate(12deg)}
+  .kiss-3{left:30%;bottom:-18px;transform:rotate(-6deg)}
+
+  /* === MAIN CONTENT (hidden until login) === */
+  #main{
+    position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:150;
+    transition:opacity .35s ease;opacity:0;pointer-events:none;background:transparent;
+  }
+
+  /* Vinyl left (outside letter) */
+  .vinyl-wrap{
+    position:fixed;left:24px;top:50%;transform:translateY(-50%);z-index:160;
+    display:flex;flex-direction:column;align-items:center;gap:12px;
+  }
+  .vinyl{
+    width:180px;height:180px;border-radius:50%;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,0.25);
+    background:#111;display:flex;align-items:center;justify-content:center;cursor:pointer;
+    transition:transform .25s ease;
+    /* animation exists but paused until playing */
+    animation:spin 4.8s linear infinite;
+    animation-play-state:paused;
+  }
+  .vinyl.playing{animation-play-state:running}
+  .vinyl img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+  @keyframes spin{from{transform:translateY(-50%) rotate(0deg)}to{transform:translateY(-50%) rotate(360deg)}}
+  .vinyl-play-btn{background:var(--accent);color:#fff;padding:8px 12px;border-radius:999px;font-weight:700;cursor:pointer;border:0}
+
+  /* Right polaroid photos */
+  .photo-right{position:fixed;right:22px;top:50%;transform:translateY(-50%);z-index:160;display:flex;flex-direction:column;gap:16px}
+  .polaroid{width:148px;height:148px;border-radius:14px;background:#fff;padding:8px;box-shadow:0 8px 30px rgba(0,0,0,0.18);overflow:hidden}
+  .polaroid img{width:100%;height:100%;object-fit:cover;border-radius:8px}
+
+  /* === center envelope / letter model === */
+  .center-wrap{display:flex;align-items:center;justify-content:center;width:100%;height:100vh;z-index:155}
+  .envelope-wrapper{display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px}
+  .envelope{
+    width:360px;height:220px;border-radius:14px;background:linear-gradient(180deg,#fff6fb,#fff0f7);
+    border:2px solid rgba(255,150,200,0.25);box-shadow:0 20px 60px rgba(120,30,70,0.12);
+    position:relative;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .22s ease;
+  }
+  .envelope:hover{transform:scale(1.035)}
+  .envelope::before{
+    content:'';position:absolute;left:0;top:0;width:100%;height:52%;background:linear-gradient(180deg,#ffcbdc,#ffb1dd);
+    border-radius:12px 12px 0 0;transform-origin:top;transition:transform .6s ease;box-shadow:inset 0 -6px 10px rgba(0,0,0,0.04);
+  }
+
+  .letter-paper{
+    position:absolute;left:50%;transform:translateX(-50%);bottom:10%;width:86%;height:0;background:linear-gradient(180deg,#fffefc,#fff9fb);
+    border-radius:10px;box-shadow:0 12px 30px rgba(40,20,30,0.08);overflow:hidden;padding:0;transition:height .56s cubic-bezier(.2,.9,.2,1), padding .56s cubic-bezier(.2,.9,.2,1);
+  }
+  .envelope.open::before{transform:rotateX(180deg) translateY(-8%)}
+  .envelope.open .letter-paper{height:64%;padding:26px}
+  .envelope-label{position:relative;z-index:2;font-weight:700;color:var(--pink-600);font-size:20px}
+
+  /* Glow around envelope (Idée B) */
+  .glow{filter:drop-shadow(0 0 30px rgba(255,60,140,0.35));}
+
+  /* FULLSCREEN letter (texte seul) */
+  #letterFullscreen{
+    position:fixed;inset:0;background:rgba(255,255,255,0.985);display:none;align-items:center;justify-content:center;padding:36px;z-index:400;overflow:auto;
+  }
+  .close-btn{position:fixed;top:20px;right:22px;font-size:34px;color:var(--pink-600);cursor:pointer;z-index:410}
+  .letter-box{width:min(980px,94%);max-height:86vh;overflow:auto;padding:34px;border-radius:16px;background:linear-gradient(180deg,#fff7fb,#fff0f6);
+    box-shadow:0 30px 80px rgba(80,30,60,0.12);border:2px solid rgba(255,140,180,0.25);font-size:18px;line-height:1.7;color:#4d3443;}
+  .letter-box h1{margin-top:0;color:var(--pink-600);text-align:center}
+
+  /* Corner hearts (Idée C) */
+  .corner-heart{position:fixed;opacity:1;z-index:140;pointer-events:none}
+  #heart1{left:18px;top:16px;width:72px;transform:rotate(-14deg)}
+  #heart2{right:16px;bottom:22px;width:84px;transform:rotate(12deg)}
+  #heart3{right:28px;top:42%;width:60px;transform:rotate(-8deg)}
+
+  /* responsiveness */
+  @media(max-width:880px){
+    .vinyl{width:140px;height:140px}
+    .polaroid{width:120px;height:120px}
+    .envelope{width:300px;height:190px}
+  }
+</style>
+</head>
+<body>
+
+  <!-- background for login -->
+  <div id="loginBg" aria-hidden="true"></div>
+
+  <!-- corner hearts (static) -->
+  <img src="heart.png" id="heart1" class="corner-heart" alt="" aria-hidden="true"/>
+  <img src="heart.png" id="heart2" class="corner-heart" alt="" aria-hidden="true"/>
+  <img src="heart.png" id="heart3" class="corner-heart" alt="" aria-hidden="true"/>
+
+  <!-- LOGIN POPUP -->
+  <div id="loginPopup" role="dialog" aria-modal="true" aria-label="Connexion">
+    <div class="popup" aria-hidden="false">
+      <h2>Connexion</h2>
+      <p>Entrez vos identifiants pour ouvrir le cadeau</p>
+
+      <input id="inputUser" placeholder="Nom d'utilisateur" autocomplete="username" />
+      <input id="inputPass" type="password" placeholder="Mot de passe" autocomplete="current-password" />
+      <button id="btnLogin">Se connecter</button>
+
+      <img src="kiss.png" class="kiss-deco kiss-1" alt="" aria-hidden="true"/>
+      <img src="kiss.png" class="kiss-deco kiss-2" alt="" aria-hidden="true"/>
+      <img src="kiss.png" class="kiss-deco kiss-3" alt="" aria-hidden="true"/>
+    </div>
+  </div>
+
+  <!-- MAIN (après login) -->
+  <div id="main" aria-hidden="true">
+
+    <!-- left vinyl -->
+    <div class="vinyl-wrap" aria-hidden="false">
+      <div id="vinyl" class="vinyl" title="Cliquer pour jouer/mettre en pause">
+        <img src="vinyl.png" alt="vinyle"/>
+      </div>
+      <button id="vinylBtn" class="vinyl-play-btn" aria-controls="music" aria-pressed="false">Play</button>
+    </div>
+
+    <!-- right photos -->
+    <div class="photo-right" aria-hidden="true">
+      <div class="polaroid"><img src="photo1.png" alt="photo 1"/></div>
+      <div class="polaroid"><img src="photo2.png" alt="photo 2"/></div>
+    </div>
+
+    <!-- center envelope -->
+    <div class="center-wrap">
+      <div class="envelope-wrapper">
+        <div id="envelope" class="envelope glow" role="button" aria-pressed="false" aria-label="ouvrir la lettre">
+          <div class="envelope-label">Pour Aylie</div>
+          <div class="letter-paper" id="letterPaper" aria-hidden="true"></div>
+        </div>
+        <div style="text-align:center;color:var(--muted);font-weight:600;margin-top:6px">Cliquer sur l'enveloppe pour dérouler la feuille</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- fullscreen letter -->
+  <div id="letterFullscreen" aria-hidden="true">
+    <div class="close-btn" id="closeFullscreen" aria-label="Fermer la lettre">✖</div>
+    <div class="letter-box" id="letterBox">
+      <h1>Pour toi, Aylie ❤️</h1>
+      <div id="letterText">
+        <!-- Remplace par ton texte exact si tu veux -->
+        <p>Mon amour,</p>
+        <p>J’espère que tu vas bien, mon amour. Bon… je commence à manquer de mots à force de te faire des petits messages comme ça, mais en vrai je n’en manque jamais vraiment, parce que mon amour pour toi grandit et se renforce chaque jour un peu plus. Chaque fois que je pense à toi, j’ai l’impression de découvrir un peu plus ce trésor incroyable que tu es.</p>
+        <p>Tu le sais, Aylie… tu es tout pour moi. Je peux toujours compter sur toi, et toi tu peux toujours compter sur moi, peu importe quand, peu importe comment. Je sais que parfois je peux paraître chiant, mal m’exprimer ou m’énerver quand il ne faut pas… mais tu sais que ce n’est jamais contre toi. Tu es mon équilibre, ma force et ma lumière, et je ferai toujours de mon mieux pour être celui que tu mérites.
+       <p> Aujourd’hui, si je t’écris, c’est juste pour te rappeler que tu n’es jamais seule. Je serai toujours là pour toi, dans les moments heureux comme dans les moments difficiles. Je veux être celui qui partage tes joies, qui essuie tes larmes, qui te fait sourire même quand tout semble compliqué. Je suis ton tournesol, et toi tu es mon soleil.</p>          
+        <p>J’ai tellement hâte de voyager avec toi, de découvrir le monde à tes côtés, de t’embrasser partout sur Terre, de te redécouvrir encore et encore, et de me rappeler à quel point tu es unique, intelligente, belle et exceptionnelle. Chaque jour avec toi est un cadeau que je ne cesserai jamais de chérir.Je te veux pour la vie. Toi et seulement toi, Aylie. Tu es mon tout, mon amour, ma maison, mon avenir. Et même si les mots me manquent parfois, sache que mon cœur, lui, ne cessera jamais de te parler.</p>
+        <p>I look to you to see the truth.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- player -->
+  <audio id="music" preload="metadata">
+    <source src="playlist.mp4" type="audio/mp4">
+    Ton navigateur ne supporte pas l'élément audio.
+  </audio>
+
+<script>
+  // login credentials
+  const LOG_USER = 'aylie';
+  const LOG_PASS = 'princesse';
+
+  const loginPopup = document.getElementById('loginPopup');
+  const loginBg = document.getElementById('loginBg');
+  const btnLogin = document.getElementById('btnLogin');
+  const inputUser = document.getElementById('inputUser');
+  const inputPass = document.getElementById('inputPass');
+  const main = document.getElementById('main');
+  const envelope = document.getElementById('envelope');
+  const letterPaper = document.getElementById('letterPaper');
+  const letterFullscreen = document.getElementById('letterFullscreen');
+  const closeFullscreen = document.getElementById('closeFullscreen');
+  const vinyl = document.getElementById('vinyl');
+  const vinylBtn = document.getElementById('vinylBtn');
+  const audio = document.getElementById('music');
+
+  // initial UI state
+  main.style.opacity = '0';
+  main.style.pointerEvents = 'none';
+  audio.pause();
+
+  // login logic
+  btnLogin.addEventListener('click', () => {
+    const u = (inputUser.value || '').trim().toLowerCase();
+    const p = (inputPass.value || '');
+    if (u === LOG_USER && p === LOG_PASS) {
+      // hide popup AND loginBg so main is visible
+      loginPopup.style.display = 'none';
+      if (loginBg) loginBg.style.display = 'none';
+      main.style.opacity = '1';
+      main.style.pointerEvents = 'auto';
+      main.setAttribute('aria-hidden','false');
+    } else {
+      btnLogin.textContent = 'Identifiants incorrects';
+      btnLogin.disabled = true;
+      setTimeout(()=>{ btnLogin.textContent = 'Se connecter'; btnLogin.disabled = false; }, 1400);
+    }
+  });
+
+  // allow Enter key
+  [inputUser,inputPass].forEach(el => {
+    el.addEventListener('keydown', (e) => { if (e.key === 'Enter') btnLogin.click(); });
+  });
+
+  // envelope open -> show paper then fullscreen text
+  let isOpening = false;
+  envelope.addEventListener('click', () => {
+    if (isOpening) return;
+    isOpening = true;
+    envelope.classList.add('open');
+    letterPaper.setAttribute('aria-hidden','false');
+    // after CSS expansion
+    setTimeout(() => {
+      // show fullscreen text
+      letterFullscreen.style.display = 'flex';
+      letterFullscreen.setAttribute('aria-hidden','false');
+      // retract paper visually
+      envelope.classList.remove('open');
+      letterPaper.setAttribute('aria-hidden','true');
+      isOpening = false;
+    }, 700);
+  });
+
+  // close fullscreen
+  closeFullscreen.addEventListener('click', () => {
+    letterFullscreen.style.display = 'none';
+    letterFullscreen.setAttribute('aria-hidden','true');
+  });
+
+  // vinyl play/pause
+  function updateVinylUI(){
+    if (audio.paused){
+      vinyl.classList.remove('playing');
+      vinylBtn.textContent = 'Play';
+      vinylBtn.setAttribute('aria-pressed','false');
+    } else {
+      vinyl.classList.add('playing');
+      vinylBtn.textContent = 'Pause';
+      vinylBtn.setAttribute('aria-pressed','true');
+    }
+  }
+  vinyl.addEventListener('click', () => {
+    if (audio.paused) audio.play(); else audio.pause();
+  });
+  vinylBtn.addEventListener('click', () => {
+    if (audio.paused) audio.play(); else audio.pause();
+  });
+  audio.addEventListener('play', updateVinylUI);
+  audio.addEventListener('pause', updateVinylUI);
+  audio.addEventListener('ended', updateVinylUI);
+
+  // final safety: ensure loginBg removed if user pressed login quickly
+  if (loginBg && loginBg.style.display === 'none') { /* nothing */ }
+
+  // assets note: place these files in same folder as the HTML:
+  // kisses.png (login background), kiss.png (small kiss decal),
+  // heart.png (corner hearts), vinyl.png (vinyl image),
+  // photo1.png, photo2.png (polaroids), playlist.mp4 (audio)
+</script>
+</body>
+</html>
